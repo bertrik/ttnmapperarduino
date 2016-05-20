@@ -63,7 +63,18 @@ void setup() {
 
   //initialise the rn2483 module
   myLora.autobaud();
-  myLora.initTTN("XXXXXX");
+
+  //print out the HWEUI so that we can register it via ttnctl
+  Serial.println("When using OTAA, register this DevEUI: ");
+  Serial.println(myLora.hweui());
+  Serial.println("RN2483 version number:");
+  Serial.println(myLora.sysver());
+  
+  //ABP: init(String AppEUI, String NwkSKey, String AppSKey, String addr);
+  myLora.init("70B3D57ED00001A6", "AE17E567AECC8787F749A62F5541D522", "8D7FFEF938589D95AAD928C2E2E7E48F", "02017201");
+  
+  //OTAA: init(String AppEUI, String AppKey);
+  //myLora.init("70B3D57ED00001A6", "A23C96EE13804963F8C2BD6285448198");
 
   //transmit a startup message
   myLora.txUncnf("Fast TXer (TTN)");
@@ -93,3 +104,4 @@ void led_off()
 {
   digitalWrite(13, 0);
 }
+

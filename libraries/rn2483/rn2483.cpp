@@ -43,62 +43,50 @@ void rn2483::autobaud()
   }
 }
 
-void rn2483::init()
+String rn2483::hweui()
 {
-  if(_use_wan) initWan();
-  else if(_use_raw) initRaw();
-  else if(_use_ttn) initTTN(_ttnAddr);
-  else 
-  {
-    _use_wan = true;
-    initWan(); //default is to use WAN
-  }
-}
-
-void rn2483::initRaw()
-{
-  _use_raw = true;
-
   //clear serial buffer
   while(_serial.read() != -1);
 
-  _serial.println("mac pause");
-  _serial.readStringUntil('\n');
-  _serial.println("radio set mod lora");
-  _serial.readStringUntil('\n');
-  _serial.println("radio set freq "+_raw_frequency);
-  _serial.readStringUntil('\n');
-  _serial.println("radio set pwr 14");
-  _serial.readStringUntil('\n');
-  _serial.println("radio set sf sf12"); //sf7 is fastest, sf12 is furthest
-  _serial.readStringUntil('\n');
-  _serial.println("radio set afcbw 41.7");
-  _serial.readStringUntil('\n');
-  _serial.println("radio set rxbw 25");
-  _serial.readStringUntil('\n');
-  _serial.println("radio set bitrate 50000");
-  _serial.readStringUntil('\n');
-  _serial.println("radio set fdev 25000");
-  _serial.readStringUntil('\n');
-  _serial.println("radio set prlen 8");
-  _serial.readStringUntil('\n');
-  _serial.println("radio set crc on");
-  _serial.readStringUntil('\n');
-  _serial.println("radio set iqi off");
-  _serial.readStringUntil('\n');
-  _serial.println("radio set cr 4/5");
-  _serial.readStringUntil('\n');
-  _serial.println("radio set wdt 60000");
-  _serial.readStringUntil('\n');
-  _serial.println("radio set sync 12");
-  _serial.readStringUntil('\n');
-  _serial.println("radio set bw 500"); //500kHz max, 250kHz, 125kHz min
-  _serial.readStringUntil('\n');
+  _serial.println("sys get hweui");
+  String addr = _serial.readStringUntil('\n');
+  addr.trim();
+  return addr;
 }
 
-void rn2483::initWan()
+String rn2483::sysver()
 {
-  _use_wan = true;
+  //clear serial buffer
+  while(_serial.read() != -1);
+
+  _serial.println("sys get ver");
+  String ver = _serial.readStringUntil('\n');
+  ver.trim();
+  return ver;
+}
+
+void rn2483::init()
+{
+  if(_appeui=="0")
+  {
+    return;
+  }
+  else if(_otaa==true)
+  {
+    init(_appeui, _appskey);
+  }
+  else
+  {
+    init(_appeui, _nwkskey, _appskey, _devAddr);
+  }
+}
+
+void rn2483::init(String AppEUI, String AppKey)
+{
+  _otaa = true;
+  _appeui = AppEUI;
+  _nwkskey = "0";
+  _appskey = AppKey; //reuse the variable
 
   //clear serial buffer
   while(_serial.read() != -1);
@@ -108,11 +96,16 @@ void rn2483::initWan()
   addr.trim();
   
   _serial.println("mac reset 868");
-  _serial.readStringUntil('\n');
+  String receivedData = _serial.readStringUntil('\n');
+  Serial.print(receivedData);
+
   _serial.println("mac set appeui "+_appeui);
-  _serial.readStringUntil('\n');
-  _serial.println("mac set appkey "+_appkey);
-  _serial.readStringUntil('\n');
+  receivedData = _serial.readStringUntil('\n');
+  Serial.print(receivedData);
+
+  _serial.println("mac set appkey "+_appskey);
+  receivedData = _serial.readStringUntil('\n');
+  Serial.print(receivedData);
 
   if(addr!="" && addr.length() == 16)
   {
@@ -122,11 +115,21 @@ void rn2483::initWan()
   {
     _serial.println("mac set deveui "+_default_deveui);
   }
-  _serial.readStringUntil('\n');
+  receivedData = _serial.readStringUntil('\n');
+  Serial.print(receivedData);
+
   _serial.println("mac set pwridx 1");
-  _serial.readStringUntil('\n');
-  _serial.println("mac set adr on");
-  _serial.readStringUntil('\n');
+  receivedData = _serial.readStringUntil('\n');
+  Serial.print(receivedData);
+
+  _serial.println("mac set adr off");
+  receivedData = _serial.readStringUntil('\n');
+  Serial.print(receivedData);
+
+  _serial.println("mac set rx2 3 869525000");
+  receivedData = _serial.readStringUntil('\n');
+  Serial.print(receivedData);
+
   // _serial.println("mac set retx 10");
   // _serial.readStringUntil('\n');
   // _serial.println("mac set linkchk 60");
@@ -135,14 +138,18 @@ void rn2483::initWan()
   // _serial.readStringUntil('\n');
   _serial.setTimeout(30000);
   _serial.println("mac save");
-  _serial.readStringUntil('\n');
+  receivedData = _serial.readStringUntil('\n');
+  Serial.print(receivedData);
+
   bool joined = false;
 
   for(int i=0; i<10 && !joined; i++)
   {
     _serial.println("mac join otaa");
-    _serial.readStringUntil('\n');
-    String receivedData = _serial.readStringUntil('\n');
+    receivedData = _serial.readStringUntil('\n');
+    Serial.print(receivedData);
+    receivedData = _serial.readStringUntil('\n');
+    Serial.print(receivedData);
 
     if(receivedData.startsWith("accepted"))
     {
@@ -157,10 +164,13 @@ void rn2483::initWan()
   _serial.setTimeout(2000);
 }
 
-void rn2483::initTTN(String addr)
+void rn2483::init(String AppEUI, String NwkSKey, String AppSKey, String addr)
 {
-  _use_ttn = true;
-  _ttnAddr = addr;
+  _otaa = false;
+  _appeui = AppEUI;
+  _nwkskey = NwkSKey;
+  _appskey = AppSKey;
+  _devAddr = addr;
 
   //clear serial buffer
   while(_serial.read() != -1);
@@ -171,12 +181,12 @@ void rn2483::initTTN(String addr)
   _serial.println("mac set rx2 3 869525000");
   _serial.readStringUntil('\n');
 
-  _serial.println("mac set nwkskey 2B7E151628AED2A6ABF7158809CF4F3C");
+  _serial.println("mac set nwkskey "+_nwkskey);
   _serial.readStringUntil('\n');
-  _serial.println("mac set appskey 2B7E151628AED2A6ABF7158809CF4F3C");
+  _serial.println("mac set appskey "+_appskey);
   _serial.readStringUntil('\n');
 
-  _serial.println("mac set devaddr "+addr);
+  _serial.println("mac set devaddr "+_devAddr);
   _serial.readStringUntil('\n');
 
   _serial.println("mac set adr off");
@@ -201,15 +211,7 @@ void rn2483::initTTN(String addr)
 
 void rn2483::tx(String data)
 {
-  if(_use_wan) txCnf(data); //if not specified use acks on WAN
-  else if(_use_ttn) txUncnf(data); //ttn does not have downstream, thus no acks
-  else if(_use_raw) txRaw(data);
-  else txUncnf(data); //we are unsure which mode we're in. Better not to wait for acks.
-}
-
-void rn2483::txRaw(String data)
-{
-  txData("radio tx ", data);
+  txUncnf(data); //we are unsure which mode we're in. Better not to wait for acks.
 }
 
 void rn2483::txCnf(String data)
