@@ -31,38 +31,28 @@
  * If you use 57600 baud, you can remove the line "myLora.autobaud();".
  * 
  */
-#include <SoftwareSerial.h>
-
-SoftwareSerial mySerial(10, 11); // RX, TX
 
 String str;
 
 unsigned long time = 0;
 
 //create an instance of the rn2483 library, 
-//giving the software UART as stream to use,
-//and using LoRa WAN
-rn2483 myLora(mySerial);
+rn2483 myLora(Serial1);
 
 // the setup routine runs once when you press reset:
 void setup() {
   //output LED pin
   pinMode(13, OUTPUT);
   led_on();
-  
+
   // Open serial communications and wait for port to open:
   Serial.begin(57600);
-  mySerial.begin(9600);
   Serial.println("Startup");
 
-  //reset rn2483
-  pinMode(12, OUTPUT);
-  digitalWrite(12, LOW);
-  delay(500);
-  digitalWrite(12, HIGH);
-
-  //initialise the rn2483 module
+  Serial.print("autobauding...");
+  Serial1.begin(9600);
   myLora.autobaud();
+  Serial.println("done!");
 
   //print out the HWEUI so that we can register it via ttnctl
   Serial.println("When using OTAA, register this DevEUI: ");
@@ -71,7 +61,7 @@ void setup() {
   Serial.println(myLora.sysver());
   
   //ABP: init(String AppEUI, String NwkSKey, String AppSKey, String addr);
-  myLora.init("70B3D57ED00001A6", "AE17E567AECC8787F749A62F5541D522", "8D7FFEF938589D95AAD928C2E2E7E48F", "02017201");
+  myLora.init("70B3D57ED0000A91", "706D1AC808CCDFB986E07CC651555EFC", "D9BEDF84504046327014E8D934AE5CD4", "B03C701C");
   
   //OTAA: init(String AppEUI, String AppKey);
   //myLora.init("70B3D57ED00001A6", "A23C96EE13804963F8C2BD6285448198");
