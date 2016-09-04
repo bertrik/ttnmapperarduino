@@ -1,3 +1,13 @@
+# OBSOLETE
+This repository and library has been deprecated.
+
+Please use the code available at https://github.com/jpmeijers/RN2483-Arduino-Library
+
+
+
+
+
+
 # ttnmapperarduino
 Arduino code used for the TTN mapper
 
